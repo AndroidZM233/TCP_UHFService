@@ -1,0 +1,71 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <!-- 监听端口号 -->
+    <TextView
+        android:id="@+id/port_TextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="监听的端口：" />
+    <!-- 端口号 -->
+    <EditText
+        android:id="@+id/port_EditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="6117"
+        android:layout_below="@id/port_TextView"
+        />
+
+    <!-- 发送的消息 -->
+    <TextView
+        android:id="@+id/message_TextView"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="发送的消息"
+        android:layout_below="@id/port_EditText"/>
+    <!-- 发送消息框 -->
+    <EditText
+        android:id="@+id/message_EditText"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:hint="输入要发送的消息："
+        android:layout_below="@id/message_TextView"
+        />
+
+    <!-- 启动按钮 -->
+    <Button
+        android:id="@+id/start_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="启动服务"
+        android:layout_below="@id/message_EditText"
+        android:layout_alignParentLeft="true"
+        />
+    <!-- 发送按钮 -->
+    <Button
+        android:id="@+id/send_button"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="发送消息"
+        android:layout_below="@id/message_EditText"
+        android:layout_alignParentRight="true"
+        />
+    <!-- 接收的消息-->
+    <TextView
+        android:id="@+id/receive_TextView"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_below="@id/start_button"
+        android:text="接收的消息："
+        />
+    <!-- 接收消息框 -->
+    <EditText
+        android:gravity="top"
+        android:id="@+id/receive_EditText"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:layout_below="@id/receive_TextView"
+        />
+</RelativeLayout>
