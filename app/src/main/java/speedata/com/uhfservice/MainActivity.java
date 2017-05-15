@@ -1,6 +1,7 @@
 package speedata.com.uhfservice;
 
 import android.app.Activity;
+import android.content.Intent;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
@@ -64,6 +65,9 @@ public class MainActivity extends Activity {
         sendButton.setOnClickListener(sendButtonListener);
 
         receiveEditText.append(getLocalIpAddress());
+
+        Intent intent=new Intent(MainActivity.this,UHFService.class);
+        this.startService(intent);
     }
 
     /**

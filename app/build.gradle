@@ -28,5 +28,6 @@ dependencies {
     testCompile 'junit:junit:4.12'
 
     compile 'com.speedata:deivice:+'
-    compile 'com.speedata:libuhf:5.9'
+//    compile 'com.speedata:libuhf:5.9'
+    compile project(path: ':libuhf')
 }

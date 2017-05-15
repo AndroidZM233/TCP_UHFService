@@ -4,6 +4,7 @@
     <modules>
       <module fileurl="file://$PROJECT_DIR$/UHFService.iml" filepath="$PROJECT_DIR$/UHFService.iml" />
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
+      <module fileurl="file://$PROJECT_DIR$/libuhf/libuhf.iml" filepath="$PROJECT_DIR$/libuhf/libuhf.iml" />
     </modules>
   </component>
 </project>
