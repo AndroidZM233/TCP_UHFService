@@ -1,37 +1,24 @@
 package speedata.com.uhfservice;
 
 import android.app.Activity;
+import android.app.Notification;
+import android.app.PendingIntent;
 import android.content.Intent;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
-import android.view.View;
-import android.widget.Button;
-import android.widget.EditText;
-import android.widget.Toast;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
-import java.net.ServerSocket;
-import java.net.Socket;
-
-import android.app.Activity;
-import android.content.SharedPreferences.Editor;
-import android.net.wifi.WifiInfo;
-import android.net.wifi.WifiManager;
-import android.os.Bundle;
-import android.view.Menu;
-import android.view.MenuItem;
+import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.widget.Button;
 import android.widget.EditText;
 import android.widget.Toast;
+
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.net.ServerSocket;
+import java.net.Socket;
 
 
 public class MainActivity extends Activity {
@@ -66,8 +53,11 @@ public class MainActivity extends Activity {
 
         receiveEditText.append(getLocalIpAddress());
 
-        Intent intent=new Intent(MainActivity.this,UHFService.class);
-        this.startService(intent);
+        Log.d(UHFService.TAG, "onCreate:--------------------------1111 ");
+        Intent intent = new Intent(this, UHFService.class);
+        startService(intent);
+
+        Log.d(UHFService.TAG, "onCreate:--------------------------2222222222 ");
     }
 
     /**
@@ -81,8 +71,15 @@ public class MainActivity extends Activity {
             /**
              * 启动服务器监听线程
              */
-            ServerSocket_thread serversocket_thread = new ServerSocket_thread();
-            serversocket_thread.start();
+//            ServerSocket_thread serversocket_thread = new ServerSocket_thread();
+//            serversocket_thread.start();
+
+            Intent intent = new Intent();
+            intent.setAction("com.geo.warn.msg");
+            intent.putExtra("status", "high");
+            MainActivity.this.sendBroadcast(intent);
+
+
         }
     };
 

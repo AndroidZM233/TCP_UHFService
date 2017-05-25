@@ -1,10 +1,13 @@
 package speedata.com.uhfservice;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
 /**
  * Created by 张明_ on 2017/5/15.
  */
 
-public class ReadData {
+public class ReadData implements Parcelable{
     private String EPC;
     private int RSSI;
     private int count;
@@ -14,6 +17,24 @@ public class ReadData {
         this.RSSI = RSSI;
         this.count = count;
     }
+
+    protected ReadData(Parcel in) {
+        EPC = in.readString();
+        RSSI = in.readInt();
+        count = in.readInt();
+    }
+
+    public static final Creator<ReadData> CREATOR = new Creator<ReadData>() {
+        @Override
+        public ReadData createFromParcel(Parcel in) {
+            return new ReadData(in);
+        }
+
+        @Override
+        public ReadData[] newArray(int size) {
+            return new ReadData[size];
+        }
+    };
 
     public String getEPC() {
         return EPC;
@@ -37,5 +58,17 @@ public class ReadData {
 
     public void setCount(int count) {
         this.count = count;
+    }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(EPC);
+        dest.writeInt(RSSI);
+        dest.writeInt(count);
     }
 }
