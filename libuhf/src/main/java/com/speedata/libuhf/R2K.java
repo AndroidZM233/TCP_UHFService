@@ -403,10 +403,10 @@ public class R2K implements IUHFService {
             return;
         }
         inSearch = false;
-        if (gd!=null){
+        if (gd != null) {
             gd.interrupt();
         }
-        if (invs!=null){
+        if (invs != null) {
             invs.interrupt();
         }
         cancelOperation = getLinkage().CancelOperation();

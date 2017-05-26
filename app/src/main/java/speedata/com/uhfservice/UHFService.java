@@ -111,9 +111,11 @@ public class UHFService extends Service {
         sharedXmlUtil.write("rssiFilter", "-70");
         sharedXmlUtil.write("readCntFilter", "1");
         //启动服务器监听线程
-        if (mServerSocketThread == null) {
-            mServerSocketThread = new ServerSocketThread();
-            mServerSocketThread.start();
+        synchronized (this){
+            if (mServerSocketThread == null) {
+                mServerSocketThread = new ServerSocketThread();
+                mServerSocketThread.start();
+            }
         }
 
         myReceiver = new MyReceiver();
@@ -348,7 +350,8 @@ public class UHFService extends Service {
                                 Log.d(TAG, "run: ---------------------------");
                                 isend = false;
                                 readCard();
-                            } else {
+                            }
+                            else {
                                 uhfService.inventory_stop();
                                 readCard();
                             }
@@ -411,6 +414,7 @@ public class UHFService extends Service {
 
 //        firm = new ArrayList<ReadData>();
         firm.clear();
+        send=false;
         //开始盘点
         uhfService.inventoryStart(handler);
 
@@ -418,7 +422,7 @@ public class UHFService extends Service {
         Log.d(TAG, "readCard: ------------------------");
     }
 
-
+    private volatile boolean send = false;
     ArrayList<Tag_Data> ks=new ArrayList<>();
     @SuppressWarnings("HandlerLeak")
     Handler handler = new Handler() {
@@ -429,53 +433,50 @@ public class UHFService extends Service {
                 case 1:
                     Log.d(TAG, "handleMessage: -------------------------");
                     long nowTime = System.currentTimeMillis();
-                    ks.clear();
-                    ks.addAll((ArrayList<Tag_Data>) msg.obj);
-                    if (ks.size() != 0 && ks.size() < 50) {
-                        Log.d(TAG, "handleMessage: ks.size" + ks.size());
-                        String tmp[] = new String[ks.size()];
-                        try {
-                            for (int i = 0; i < ks.size(); i++) {
-                                byte[] nq = ks.get(i).epc;
-                                if (nq != null) {
-                                    tmp[i] = b2hexs(nq, nq.length);
-                                }
-                            }
-                            int i, j;
-                            for (i = 0; i < tmp.length; i++) {
-                                for (j = 0; j < firm.size(); j++) {
-                                    if (tmp[i].equals(firm.get(j).getEPC())) {
-                                        int count = firm.get(j).getCount();
-                                        int countResult = count + 1;
-                                        firm.get(j).setCount(countResult);
-                                        int rssi = firm.get(j).getRSSI();
-                                        int rssi1 = Integer.parseInt(ks.get(i).rssi);
-                                        firm.get(j).setRSSI((rssi + rssi1) / 2);
-                                        break;
+                    if (nowTime - currentTimeMillis > 750 && !send) {
+                        Log.d(TAG, "handleMessage: sendN-----------------------");
+                        send=true;
+                        sendN();
+                    } else {
+                        Log.d(TAG, "handleMessage: NONOsendN-----------------------");
+                        ks.clear();
+                        ks.addAll((ArrayList<Tag_Data>) msg.obj);
+                        if (ks.size() != 0 ) {
+                            Log.d(TAG, "handleMessage: ks.size" + ks.size());
+                            String tmp[] = new String[ks.size()];
+                            try {
+                                for (int i = 0; i < ks.size(); i++) {
+                                    byte[] nq = ks.get(i).epc;
+                                    if (nq != null) {
+                                        tmp[i] = b2hexs(nq, nq.length);
                                     }
                                 }
-                                if (j == firm.size()) {
-                                    int rssi = Integer.parseInt(ks.get(i).rssi);
-                                    firm.add(new ReadData(tmp[i], rssi, 1));
+                                int i, j;
+                                for (i = 0; i < tmp.length; i++) {
+                                    for (j = 0; j < firm.size(); j++) {
+                                        if (tmp[i].equals(firm.get(j).getEPC())) {
+                                            int count = firm.get(j).getCount();
+                                            int countResult = count + 1;
+                                            firm.get(j).setCount(countResult);
+                                            int rssi = firm.get(j).getRSSI();
+                                            int rssi1 = Integer.parseInt(ks.get(i).rssi);
+                                            firm.get(j).setRSSI((rssi + rssi1) / 2);
+                                            break;
+                                        }
+                                    }
+                                    if (j == firm.size()) {
+                                        int rssi = Integer.parseInt(ks.get(i).rssi);
+                                        firm.add(new ReadData(tmp[i], rssi, 1));
+                                    }
                                 }
+                            } catch (Exception e) {
+                                e.printStackTrace();
+                                Log.d(TAG, "handleMessage: setRSSI error");
                             }
-                        } catch (Exception e) {
-                            e.printStackTrace();
-                            Log.d(TAG, "handleMessage: setRSSI error");
-                        }
+                            tmp = null;
 
-//                        ks.clear();
-//                        ks = null;
-                        tmp = null;
-
-                        if (nowTime - currentTimeMillis > 750) {
-                            Log.d(TAG, "handleMessage: sendN-----------------------");
-                            sendN();
-                        } else {
-                            Log.d(TAG, "handleMessage: NONOsendN-----------------------");
                         }
                     }
-
 
                     break;
             }
@@ -711,8 +712,8 @@ public class UHFService extends Service {
             outputStream.write(msg.getBytes());
         } catch (Exception e) {
             e.printStackTrace();
-            result = "0:An error occurred while trying to send a message" + "\r" + "\n";
-            sendMsg(result);
+//            result = "0:An error occurred while trying to send a message" + "\r" + "\n";
+//            sendMsg(result);
         }
 
     }
