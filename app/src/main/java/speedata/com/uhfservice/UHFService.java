@@ -1,7 +1,5 @@
 package speedata.com.uhfservice;
 
-import android.app.Notification;
-import android.app.PendingIntent;
 import android.app.Service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -12,7 +10,6 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.SystemClock;
 import android.support.annotation.Nullable;
-import android.support.v7.app.NotificationCompat;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -32,6 +29,7 @@ import java.util.Collections;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
+
 /**
  * Created by 张明_ on 2017/5/12.
  */
@@ -45,7 +43,7 @@ public class UHFService extends Service {
     private SharedXmlUtil sharedXmlUtil;
     private String result = "";
     private long currentTimeMillis;
-    public static final String TAG = "UHFNotify";
+    public static final String TAG = "TAG";
     private List<ReadData> firm = new ArrayList<ReadData>();
     int seq = 0;
     private MyReceiver myReceiver;
@@ -75,43 +73,17 @@ public class UHFService extends Service {
 //            Object AntPower = iniFile.get("Config", "AntPower");
 //            Object TagMaxCnt = iniFile.get("Config", "TagMaxCnt");
 //        }
-        NotificationCompat.Builder builder = new NotificationCompat.Builder(this);
-        builder.setSmallIcon(R.mipmap.ic_launcher);
-        builder.setContentTitle("前台服务");
-        builder.setContentText("这是前台服务");
-        Intent intent1 = new Intent(this, MainActivity.class);
-        PendingIntent pendingIntent = PendingIntent.getActivity
-                (this, 0, intent1, PendingIntent.FLAG_UPDATE_CURRENT);
-        builder.setContentIntent(pendingIntent);
-        Notification notification = builder.build();
-        startForeground(1, notification);
 
         sharedXmlUtil = SharedXmlUtil.getInstance(UHFService.this, "UHFService");
         //初始化超高频
         sharedXmlUtil.write("modle", "r2k");
         uhfService = UHFManager.getUHFService(UHFService.this);
-//        uhfService.OpenDev();
-//        try {
-//            IniReader iniReader = new IniReader("config.ini", UHFService.this);
-//            String AntPower = iniReader.getValue("StatusSet", "AntPower");
-//            String TagMaxCnt = iniReader.getValue("StatusSet", "TagMaxCnt");
-//            String RSSIFilter = iniReader.getValue("StatusSet", "RSSIFilter");
-//            String ReadCntFilter = iniReader.getValue("StatusSet", "ReadCntFilter");
-//            sharedXmlUtil.write("antPower", AntPower);
-//            sharedXmlUtil.write("tagMaxCnt", TagMaxCnt);
-//            sharedXmlUtil.write("rssiFilter", RSSIFilter);
-//            sharedXmlUtil.write("readCntFilter", ReadCntFilter);
-//            uhfService.OpenDev();
-//            setP(AntPower);
-//        } catch (IOException e) {
-//            e.printStackTrace();
-//        }
-        sharedXmlUtil.write("antPower", "30");
-        sharedXmlUtil.write("tagMaxCnt", "3");
-        sharedXmlUtil.write("rssiFilter", "-70");
-        sharedXmlUtil.write("readCntFilter", "1");
+        uhfService.OpenDev();
+        ReadINIThread readINIThread=new ReadINIThread();
+        readINIThread.start();
+
         //启动服务器监听线程
-        synchronized (this){
+        synchronized (this) {
             if (mServerSocketThread == null) {
                 mServerSocketThread = new ServerSocketThread();
                 mServerSocketThread.start();
@@ -219,6 +191,30 @@ public class UHFService extends Service {
     //        });
     //    }
 
+    private class ReadINIThread extends Thread{
+        @Override
+        public void run() {
+            super.run();
+            try {
+                IniReader iniReader = new IniReader("/storage/emulated/0/config.ini");
+                String AntPower = iniReader.getValue("StatusSet", "AntPower");
+                String TagMaxCnt = iniReader.getValue("StatusSet", "TagMaxCnt");
+                String RSSIFilter = iniReader.getValue("StatusSet", "RSSIFilter");
+                String ReadCntFilter = iniReader.getValue("StatusSet", "ReadCntFilter");
+                sharedXmlUtil.write("antPower", AntPower);
+                sharedXmlUtil.write("tagMaxCnt", TagMaxCnt);
+                sharedXmlUtil.write("rssiFilter", RSSIFilter);
+                sharedXmlUtil.write("readCntFilter", ReadCntFilter);
+                uhfService.set_antenna_power(Integer.parseInt(AntPower));
+            } catch (IOException e) {
+                e.printStackTrace();
+                Log.d(TAG, "ReadINIThread: IOException");
+            }
+        }
+    }
+
+    private int broadcastCount=0;
+    private int instructCount=0;
     private Handler broadcastHandler = new Handler() {
         @Override
         public void handleMessage(Message msg) {
@@ -227,13 +223,20 @@ public class UHFService extends Service {
                 case 10:
                     if (isend) {
                         isend = false;
+                        broadcastCount=0;
                         Log.d(TAG, "broadcastHandler: ------------------------");
-                        uhfService.OpenDev();
+//                        uhfService.OpenDev();
                         readCard();
                     } else {
-                        uhfService.OpenDev();
-                        uhfService.inventory_stop();
-                        readCard();
+//                        uhfService.OpenDev();
+//                        readCard();
+                        result = "0:Operating too fast" + "\r" + "\n";
+                        sendMsg(result);
+                        broadcastCount++;
+                        if (broadcastCount>=2){
+                            uhfService.inventory_stop();
+                            isend=true;
+                        }
                     }
 
                     break;
@@ -340,7 +343,7 @@ public class UHFService extends Service {
                     Log.d(TAG, "接收线程: " + receiveStr);
                     String[] split = receiveStr.split(":");
                     //打开uhf上电
-                    uhfService.OpenDev();
+//                    uhfService.OpenDev();
                     switch (split[0]) {
                         //读标签R（Read）
                         case "R":
@@ -348,12 +351,19 @@ public class UHFService extends Service {
                             Log.d(TAG, "run: ----------------------isend=false");
                             if (isend) {
                                 Log.d(TAG, "run: ---------------------------");
+                                instructCount=0;
                                 isend = false;
                                 readCard();
-                            }
-                            else {
-                                uhfService.inventory_stop();
-                                readCard();
+                            } else {
+//                                uhfService.inventory_stop();
+//                                readCard();
+                                result = "0:Operating too fast" + "\r" + "\n";
+                                sendMsg(result);
+                                instructCount++;
+                                if (instructCount>=2){
+                                    uhfService.inventory_stop();
+                                    isend=true;
+                                }
                             }
                             break;
                         //设置开关天线S(Set)
@@ -403,10 +413,10 @@ public class UHFService extends Service {
         result = "1:success" + "\r" + "\n";
         sendMsg(result);
 
-        uhfService.CloseDev();
+//        uhfService.CloseDev();
     }
 
-    private boolean isend = true;
+    private volatile boolean isend = true;
 
     //读标签R（Read）
     private void readCard() {
@@ -414,7 +424,7 @@ public class UHFService extends Service {
 
 //        firm = new ArrayList<ReadData>();
         firm.clear();
-        send=false;
+        send = false;
         //开始盘点
         uhfService.inventoryStart(handler);
 
@@ -423,7 +433,7 @@ public class UHFService extends Service {
     }
 
     private volatile boolean send = false;
-    ArrayList<Tag_Data> ks=new ArrayList<>();
+    ArrayList<Tag_Data> ks = new ArrayList<>();
     @SuppressWarnings("HandlerLeak")
     Handler handler = new Handler() {
         @Override
@@ -435,13 +445,13 @@ public class UHFService extends Service {
                     long nowTime = System.currentTimeMillis();
                     if (nowTime - currentTimeMillis > 750 && !send) {
                         Log.d(TAG, "handleMessage: sendN-----------------------");
-                        send=true;
+                        send = true;
                         sendN();
                     } else {
                         Log.d(TAG, "handleMessage: NONOsendN-----------------------");
                         ks.clear();
                         ks.addAll((ArrayList<Tag_Data>) msg.obj);
-                        if (ks.size() != 0 ) {
+                        if (ks.size() != 0) {
                             Log.d(TAG, "handleMessage: ks.size" + ks.size());
                             String tmp[] = new String[ks.size()];
                             try {
@@ -474,10 +484,8 @@ public class UHFService extends Service {
                                 Log.d(TAG, "handleMessage: setRSSI error");
                             }
                             tmp = null;
-
                         }
                     }
-
                     break;
             }
 
@@ -561,7 +569,7 @@ public class UHFService extends Service {
 
         isend = true;
         Log.d(TAG, "sendN: ————————————————————————————————————————————————");
-        uhfService.CloseDev();
+//        uhfService.CloseDev();
     }
 
     //查询状态I（Inquire）
@@ -580,13 +588,14 @@ public class UHFService extends Service {
         String readCntFilter = sharedXmlUtil.read("readCntFilter", "");
         if (AntPower.equals("-1")) {
             result = "0,AntPower=" + AntPower + ",TagMaxCnt=" + tagMaxCnt + ",RSSIFilter=" + rssiFilter
-                    + ",CntFilter=" + readCntFilter + "\r" + "\n";
+                    + ",ReadCntFilter=" + readCntFilter + "\r" + "\n";
         } else {
-            result = "1,AntPower=" + AntPower + ",TagMaxCnt=" + tagMaxCnt + ",RSSIFilter=" + rssiFilter
-                    + ",CntFilter=" + readCntFilter + "\r" + "\n";
+            result = "1,AntPower=" + AntPower + ",Ta" +
+                    "gMaxCnt=" + tagMaxCnt + ",RSSIFilter=" + rssiFilter
+                    + ",ReadCntFilter=" + readCntFilter + "\r" + "\n";
         }
         sendMsg(result);
-        uhfService.CloseDev();
+//        uhfService.CloseDev();
     }
 
 
@@ -601,7 +610,7 @@ public class UHFService extends Service {
                 return;
             }
             int power = Integer.parseInt(str);
-            if (power >= 0 && power <= 30) {
+            if (power >= 10 && power <= 30) {
                 int i = uhfService.set_antenna_power(power);
                 if (i == 0) {
                     result = "1:AntPower=" + power + "\r" + "\n";
@@ -610,7 +619,7 @@ public class UHFService extends Service {
                 }
                 sendMsg(result);
             } else {
-                result = "0:Power Range of 0-30" + "\r" + "\n";
+                result = "0:Power Range of 10-30" + "\r" + "\n";
                 sendMsg(result);
             }
         } catch (NumberFormatException e) {
@@ -620,7 +629,7 @@ public class UHFService extends Service {
         }
 
         Log.d(TAG, "setP: ----------------------");
-        uhfService.CloseDev();
+//        uhfService.CloseDev();
     }
 
 
@@ -700,7 +709,7 @@ public class UHFService extends Service {
             sendMsg(result);
         }
 
-        uhfService.CloseDev();
+//        uhfService.CloseDev();
     }
 
     //发送信息

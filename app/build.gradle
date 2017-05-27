@@ -29,4 +29,6 @@ dependencies {
     compile 'com.speedata:deivice:+'
     //    compile 'com.speedata:libuhf:5.9'
     compile project(path: ':libuhf')
+    compile 'com.squareup.leakcanary:leakcanary-android:1.5.1'
+
 }

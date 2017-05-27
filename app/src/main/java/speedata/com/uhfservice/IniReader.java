@@ -1,8 +1,9 @@
 package speedata.com.uhfservice;
 
-import android.content.Context;
-
+import java.io.BufferedInputStream;
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
@@ -27,9 +28,11 @@ public class IniReader {
 	 * @param name 文件名
 	 * @throws IOException
 	 */
-	public IniReader(String name, Context context) throws IOException
+	public IniReader(String name) throws IOException
 	{
-		InputStream in = context.getAssets().open(name);
+		File file=new File(name);
+		FileInputStream fileInputStream = new FileInputStream(file);
+		InputStream in= new BufferedInputStream(fileInputStream);
 		InputStreamReader reader = new InputStreamReader(in, "GBK");
 		BufferedReader read = null;
 		try {
