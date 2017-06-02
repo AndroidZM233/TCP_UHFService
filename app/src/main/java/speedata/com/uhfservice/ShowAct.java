@@ -1,33 +1,84 @@
 package speedata.com.uhfservice;
 
 import android.app.ActivityManager;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.net.wifi.WifiInfo;
 import android.net.wifi.WifiManager;
 import android.os.Bundle;
+import android.os.SystemClock;
 import android.support.annotation.Nullable;
 import android.support.v7.app.AppCompatActivity;
+import android.view.View;
 import android.widget.CompoundButton;
+import android.widget.EditText;
 import android.widget.TextView;
-import android.widget.Toast;
 import android.widget.ToggleButton;
 
+import com.speedata.libuhf.IUHFService;
+import com.speedata.libuhf.UHFManager;
+import com.speedata.libuhf.utils.SharedXmlUtil;
+
+import org.greenrobot.eventbus.EventBus;
+import org.greenrobot.eventbus.Subscribe;
+import org.greenrobot.eventbus.ThreadMode;
+
+import java.io.IOException;
 import java.util.List;
 
 /**
  * Created by 张明_ on 2017/5/27.
  */
 
-public class ShowAct extends AppCompatActivity  {
+public class ShowAct extends AppCompatActivity implements View.OnClickListener {
     private TextView tv_ip;
     private ToggleButton btn_serviceStatus;
+    private TextView tv_status;
+    private ToggleButton btn_changeStatus;
+    private EditText tv_tcp_status;
+    private EditText tv_tcp_receive;
+    private EditText tv_tcp_send;
+    private TextView tv_config;
+    private SharedXmlUtil sharedXmlUtil;
+    private TextView tv_uhf_status;
+    private MyReceiver myReceiver;
 
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.act_show);
         initView();
+        EventBus.getDefault().register(this);
+
+        sharedXmlUtil = SharedXmlUtil.getInstance(ShowAct.this);
+        //初始化超高频
+        sharedXmlUtil.write("modle", "r2k");
+        IUHFService uhfService = UHFManager.getUHFService(ShowAct.this);
+        boolean serviceWork = isServiceWork(this, "speedata.com.uhfservice.UHFService");
+        int antenna_power = 0;
+        if (serviceWork) {
+            antenna_power = uhfService.get_antenna_power();
+        } else {
+            uhfService.OpenDev();
+            SystemClock.sleep(200);
+            antenna_power = uhfService.get_antenna_power();
+            uhfService.CloseDev();
+        }
+        if (antenna_power >= 10 && antenna_power <= 30) {
+            tv_uhf_status.setText("正常");
+            tv_uhf_status.setTextColor(getResources().getColor(R.color.green));
+        }else {
+            tv_uhf_status.setText("异常");
+            tv_uhf_status.setTextColor(getResources().getColor(R.color.red));
+        }
+        UHFManager.closeUHFService();
+
+        myReceiver = new MyReceiver();
+        IntentFilter intentFilter = new IntentFilter();
+        intentFilter.addAction("com.geo.warn.msg");
+        registerReceiver(myReceiver, intentFilter);
     }
 
 
@@ -36,16 +87,69 @@ public class ShowAct extends AppCompatActivity  {
         btn_serviceStatus = (ToggleButton) findViewById(R.id.btn_serviceStatus);
         btn_serviceStatus.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
             private Intent intent;
+
             @Override
             public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
-                if (isChecked){
+                if (isChecked) {
                     intent = new Intent(ShowAct.this, UHFService.class);
                     startService(intent);
-                }else {
+                } else {
                     stopService(intent);
                 }
             }
         });
+        tv_status = (TextView) findViewById(R.id.tv_status);
+
+        btn_changeStatus = (ToggleButton) findViewById(R.id.btn_changeStatus);
+        btn_changeStatus.setOnCheckedChangeListener(new CompoundButton.OnCheckedChangeListener() {
+            @Override
+            public void onCheckedChanged(CompoundButton buttonView, boolean isChecked) {
+                if (isChecked) {
+                    Intent intent = new Intent();
+                    intent.setAction("com.geo.warn.msg");
+                    intent.putExtra("status", "high");
+                    sendBroadcast(intent);
+                } else {
+                    Intent intent = new Intent();
+                    intent.setAction("com.geo.warn.msg");
+                    intent.putExtra("status", "low");
+                    sendBroadcast(intent);
+                }
+            }
+        });
+        tv_tcp_status = (EditText) findViewById(R.id.tv_tcp_status);
+        tv_tcp_receive = (EditText) findViewById(R.id.tv_tcp_receive);
+        tv_tcp_send = (EditText) findViewById(R.id.tv_tcp_send);
+        tv_config = (TextView) findViewById(R.id.tv_config);
+        tv_uhf_status = (TextView) findViewById(R.id.tv_uhf_status);
+    }
+
+    @Subscribe(threadMode = ThreadMode.MAIN)
+    public void onEventMainThread(MsgEvent mEvent) {
+        String type = mEvent.getType();
+        String msg = (String) mEvent.getMsg();
+        if ("TCPConnect".equals(type)) {
+            tv_tcp_status.append(msg);
+        } else if ("status".equals(type)) {
+            tv_status.setText(msg);
+        } else if ("tcp_receiver".equals(type)) {
+            tv_tcp_receive.append(msg + "\n");
+        } else if ("tcp_send".equals(type)) {
+            tv_tcp_send.append(msg);
+        } else if ("config".equals(type)) {
+            tv_config.setText(msg);
+        }
+    }
+
+    class MyReceiver extends BroadcastReceiver {
+
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            String status = intent.getExtras().getString("status");
+            if (status != null) {
+                EventBus.getDefault().post(new MsgEvent("status", status));
+            }
+        }
     }
 
     @Override
@@ -55,9 +159,36 @@ public class ShowAct extends AppCompatActivity  {
 
         boolean serviceWork = isServiceWork(this, "speedata.com.uhfservice.UHFService");
         btn_serviceStatus.setChecked(serviceWork);
-        Toast.makeText(this, serviceWork + "", Toast.LENGTH_SHORT).show();
+
+        ReadINIThread readINIThread = new ReadINIThread();
+        readINIThread.start();
     }
 
+    private class ReadINIThread extends Thread {
+        @Override
+        public void run() {
+            super.run();
+            try {
+                IniReader iniReader = new IniReader("/storage/emulated/0/config.ini");
+                String AntPower = iniReader.getValue("StatusSet", "AntPower");
+                String TagMaxCnt = iniReader.getValue("StatusSet", "TagMaxCnt");
+                String RSSIFilter = iniReader.getValue("StatusSet", "RSSIFilter");
+                String ReadCntFilter = iniReader.getValue("StatusSet", "ReadCntFilter");
+                String result = "AntPower=" + AntPower + "\nTagMaxCnt=" + TagMaxCnt + "\nRSSIFilter=" + RSSIFilter
+                        + "\nReadCntFilter=" + ReadCntFilter;
+                EventBus.getDefault().post(new MsgEvent("config", result));
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        EventBus.getDefault().unregister(this);
+        unregisterReceiver(myReceiver);
+    }
 
     /**
      * 判断某个服务是否正在运行的方法
@@ -99,4 +230,9 @@ public class ShowAct extends AppCompatActivity  {
                 (ipAddress >> 16 & 0xff), (ipAddress >> 24 & 0xff));
     }
 
+    @Override
+    public void onClick(View v) {
+        switch (v.getId()) {
+        }
+    }
 }

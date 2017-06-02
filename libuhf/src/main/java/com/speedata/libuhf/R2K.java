@@ -83,13 +83,13 @@ public class R2K implements IUHFService {
         public void run() {
             super.run();
             while (inSearch) {
-                SystemClock.sleep(10);
+                SystemClock.sleep(50);
 //                synchronized (this){
 //                    Message msg = new Message();
 //                ArrayList<Tag_Data> tg = get_inventory_data();
                 cx.clear();
                 get_inventory_data();
-                if (cx != null) {
+                if (cx.size()!=0) {
                     h.sendMessage(h.obtainMessage(1, cx));
 //                        msg.what = 1;
 //                        msg.obj = tg;

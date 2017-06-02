@@ -30,5 +30,6 @@ dependencies {
     //    compile 'com.speedata:libuhf:5.9'
     compile project(path: ':libuhf')
     compile 'com.squareup.leakcanary:leakcanary-android:1.5.1'
+    compile 'org.greenrobot:eventbus:3.0.0'
 
 }
