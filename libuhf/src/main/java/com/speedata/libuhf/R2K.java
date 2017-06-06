@@ -5,7 +5,6 @@ package com.speedata.libuhf;
 */
 
 import android.content.Context;
-import android.os.Build;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.serialport.DeviceControl;
@@ -32,10 +31,6 @@ import com.uhf.structures.Single_Inventory_Time_Config;
 import com.uhf.structures.St_Inv_Data;
 import com.uhf.structures.TagGroup;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.StringTokenizer;
@@ -45,7 +40,7 @@ import java.util.StringTokenizer;
 public class R2K implements IUHFService {
 
     private static final String TAG = "r2000_native";
-    private static Linkage lk;
+    private Linkage lk;
     private Handler h = null;
     private boolean inSearch = false;
     private inv_thread invs = null;
@@ -84,17 +79,12 @@ public class R2K implements IUHFService {
             super.run();
             while (inSearch) {
                 SystemClock.sleep(50);
+
 //                synchronized (this){
 //                    Message msg = new Message();
 //                ArrayList<Tag_Data> tg = get_inventory_data();
-                cx.clear();
+                Log.d(TAG, "get_invdata: --------------------");
                 get_inventory_data();
-                if (cx.size()!=0) {
-                    h.sendMessage(h.obtainMessage(1, cx));
-//                        msg.what = 1;
-//                        msg.obj = tg;
-//                        h.sendMessage(msg);
-                }
 
 //                }
 
@@ -102,7 +92,7 @@ public class R2K implements IUHFService {
         }
     }
 
-    public static Linkage getLinkage() {
+    public Linkage getLinkage() {
         if (lk == null) {
             lk = new Linkage();
         }
@@ -114,105 +104,107 @@ public class R2K implements IUHFService {
     }
 
     public int OpenDev() {
-        if (ConfigUtils.isConfigFileExists() && !CommonUtils.subDeviceType().contains("55")) {
-            mRead = ConfigUtils.readConfig(mContext);
-            String powerType = mRead.getUhf().getPowerType();
-            int[] intArray = new int[mRead.getUhf().getGpio().size()];
-            for (int i = 0; i < mRead.getUhf().getGpio().size(); i++) {
-                intArray[i] = mRead.getUhf().getGpio().get(i);
-            }
-            try {
-                newDeviceControl = new android.serialport.DeviceControl(powerType, intArray);
-                newDeviceControl.PowerOffDevice();
-                newDeviceControl.PowerOnDevice();
-//                try {
-//                    Thread.sleep(1000);
-//                } catch (InterruptedException e) {
+        lk = new Linkage();
+//        if (ConfigUtils.isConfigFileExists() && !CommonUtils.subDeviceType().contains("55")) {
+//            mRead = ConfigUtils.readConfig(mContext);
+//            String powerType = mRead.getUhf().getPowerType();
+//            int[] intArray = new int[mRead.getUhf().getGpio().size()];
+//            for (int i = 0; i < mRead.getUhf().getGpio().size(); i++) {
+//                intArray[i] = mRead.getUhf().getGpio().get(i);
+//            }
+//            try {
+//                newDeviceControl = new android.serialport.DeviceControl(powerType, intArray);
+//                newDeviceControl.PowerOffDevice();
+//                newDeviceControl.PowerOnDevice();
+////                try {
+////                    Thread.sleep(1000);
+////                } catch (InterruptedException e) {
+////                }
+//                int result = getLinkage().open_serial(mRead.getUhf().getSerialPort());
+//                getLinkage().Radio_Initialization();
+//                if (result == 0) {
+//                    return 0;
+//                } else {
+//                    return -1;
 //                }
-                int result = getLinkage().open_serial(mRead.getUhf().getSerialPort());
-                getLinkage().Radio_Initialization();
-                if (result == 0) {
-                    return 0;
-                } else {
-                    return -1;
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-                return -1;
-            }
-        } else {
-            return NoXmlOpenDev();
-        }
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//                return -1;
+//            }
+//        } else {
+        return NoXmlOpenDev();
+//        }
     }
 
-    private static String readEm55() {
-        String state = null;
-        File file = new File("/sys/class/misc/aw9523/gpio");
-        try {
-            FileReader fileReader = new FileReader(file);
-            BufferedReader bufferedReader = new BufferedReader(fileReader);
-            state = bufferedReader.readLine();
-            bufferedReader.close();
-        } catch (FileNotFoundException e) {
-            e.printStackTrace();
-        } catch (IOException e) {
-            e.printStackTrace();
-        }
-        Log.d(TAG, "readEm55state: " + state);
-        return state;
-    }
+//    private static String readEm55() {
+//        String state = null;
+//        File file = new File("/sys/class/misc/aw9523/gpio");
+//        try {
+//            FileReader fileReader = new FileReader(file);
+//            BufferedReader bufferedReader = new BufferedReader(fileReader);
+//            state = bufferedReader.readLine();
+//            bufferedReader.close();
+//        } catch (FileNotFoundException e) {
+//            e.printStackTrace();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }
+//        Log.d(TAG, "readEm55state: " + state);
+//        return state;
+//    }
 
-    String xinghao = Build.MODEL;
-    String readEm55 = readEm55();
+//    String xinghao = Build.MODEL;
+//    String readEm55 = readEm55();
 
     private int NoXmlOpenDev() {
-        if (Build.VERSION.RELEASE.equals("4.4.2")) {
-            try {
-                pw = new DeviceControl(DeviceControl.PowerType.MAIN, 64);
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-        } else if (Build.VERSION.RELEASE.equals("5.1")) {
-            if (xinghao.equals("KT80") || xinghao.equals("W6") || xinghao.equals("N80")
-                    || xinghao.equals("Biowolf LE")) {
-                try {
-                    pw = new DeviceControl(DeviceControl.PowerType.MAIN, 119);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            } else if (xinghao.equals("KT55")) {
-                if (readEm55.equals("80")) {
-                    try {
-                        pw = new DeviceControl(DeviceControl.PowerType.MAIN_AND_EXPAND
-                                , 88, 7, 5);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-
-                } else if (readEm55.equals("48") || readEm55.equals("81")) {
-                    try {
-                        pw = new DeviceControl(DeviceControl.PowerType.MAIN_AND_EXPAND
-                                , 88, 7, 6);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                } else {
-                    try {
-                        pw = new DeviceControl(DeviceControl.PowerType.MAIN, 88);
-                    } catch (IOException e) {
-                        e.printStackTrace();
-                    }
-                }
-
-            } else {
-                try {
-                    pw = new DeviceControl(DeviceControl.PowerType.MAIN, 94);
-                } catch (IOException e) {
-                    e.printStackTrace();
-                }
-            }
-        }
+//        if (Build.VERSION.RELEASE.equals("4.4.2")) {
+//            try {
+//                pw = new DeviceControl(DeviceControl.PowerType.MAIN, 64);
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//        } else if (Build.VERSION.RELEASE.equals("5.1")) {
+//            if (xinghao.equals("KT80") || xinghao.equals("W6") || xinghao.equals("N80")
+//                    || xinghao.equals("Biowolf LE")) {
+//                try {
+//                    pw = new DeviceControl(DeviceControl.PowerType.MAIN, 119);
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            } else if (xinghao.equals("KT55")) {
+//                if (readEm55.equals("80")) {
+//                    try {
+//                        pw = new DeviceControl(DeviceControl.PowerType.MAIN_AND_EXPAND
+//                                , 88, 7, 5);
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//
+//                } else if (readEm55.equals("48") || readEm55.equals("81")) {
+//                    try {
+//                        pw = new DeviceControl(DeviceControl.PowerType.MAIN_AND_EXPAND
+//                                , 88, 7, 6);
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                } else {
+//                    try {
+//                        pw = new DeviceControl(DeviceControl.PowerType.MAIN, 88);
+//                    } catch (IOException e) {
+//                        e.printStackTrace();
+//                    }
+//                }
+//
+//            } else {
+//                try {
+//                    pw = new DeviceControl(DeviceControl.PowerType.MAIN, 94);
+//                } catch (IOException e) {
+//                    e.printStackTrace();
+//                }
+//            }
+//        }
         try {
+            pw = new DeviceControl(DeviceControl.PowerType.MAIN, 119);
             pw.PowerOffDevice();
             pw.PowerOnDevice();
         } catch (IOException e) {
@@ -231,6 +223,7 @@ public class R2K implements IUHFService {
 //        getLinkage().Radio_RetrieveAttache();
 //        getLinkage().Radio_ConnectTo();
         int result = getLinkage().open_serial(SERIALPORT);
+        SystemClock.sleep(2000);
         getLinkage().Radio_Initialization();
         if (result == 0) {
             return 0;
@@ -255,6 +248,10 @@ public class R2K implements IUHFService {
 
     public void CloseDev() {
         getLinkage().close_serial();
+//        SystemClock.sleep(2000);
+        lk = null;
+        cx = null;
+        stInvData = null;
         if (ConfigUtils.isConfigFileExists() && !CommonUtils.subDeviceType().contains("55")) {
             try {
                 newDeviceControl.PowerOffDevice();
@@ -268,6 +265,7 @@ public class R2K implements IUHFService {
                 e.printStackTrace();
             }
         }
+
 
 //        Log.d("s_start", String.valueOf(System.currentTimeMillis()));
 //        lk.close_serial();
@@ -323,9 +321,11 @@ public class R2K implements IUHFService {
         }
     }
 
-    private St_Inv_Data[] stInvData = new St_Inv_Data[1024];
+    private volatile St_Inv_Data[] stInvData = new St_Inv_Data[1024];
     private int cancelOperation = 0;
-    private ArrayList<Tag_Data> cx = new ArrayList<Tag_Data>();
+    private volatile ArrayList<Tag_Data> cx = new ArrayList<Tag_Data>();
+    private volatile long currentTimeMillis = 0L;
+    private volatile boolean send = false;
 
     public void inventoryStart() {
         if (inSearch) {
@@ -333,6 +333,7 @@ public class R2K implements IUHFService {
         }
         inSearch = true;
         if (cancelOperation == 0) {
+            currentTimeMillis = System.currentTimeMillis();
             invs = new inv_thread();
             invs.start();
             gd = new get_invdata();
@@ -355,11 +356,11 @@ public class R2K implements IUHFService {
 
     @Override
     public void newInventoryStart() {
-        if (!this.inSearch) {
-            this.inSearch = true;
+        if (!inSearch) {
+            inSearch = true;
             if (cancelOperation == 0) {
-                this.invs = new inv_thread();
-                this.invs.start();
+                invs = new inv_thread();
+                invs.start();
                 testGetInvdata = new testGetInvdata();
                 testGetInvdata.start();
             }
@@ -403,6 +404,7 @@ public class R2K implements IUHFService {
             return;
         }
         inSearch = false;
+//        send = false;
         if (gd != null) {
             gd.interrupt();
         }
@@ -475,7 +477,7 @@ public class R2K implements IUHFService {
     }
 
 
-    private ArrayList<Tag_Data> get_inventory_data() {
+    private synchronized void get_inventory_data() {
 //        ArrayList<Tag_Data> cx = new ArrayList<Tag_Data>();
 //        St_Inv_Data[] arg0 = new St_Inv_Data[512];
 //        int sn = getLinkage().GetInvData(arg0, 0);
@@ -502,8 +504,12 @@ public class R2K implements IUHFService {
 //        }
 //        return null;
 
+
+        cx.clear();
+        Log.d(TAG, "get_inventory_data: cx.clear");
         int num = getLinkage().GetInvData(stInvData, 1);
         if ((num > 0) && (stInvData != null)) {
+            Log.d(TAG, "get_inventory_data: for 循环里"+num);
             for (int i = 0; i < num; i++) {
                 byte[] n_epc = new byte[stInvData[i].nLength];
                 byte[] n_tid = new byte[stInvData[i].tidLength];
@@ -521,9 +527,18 @@ public class R2K implements IUHFService {
                 n_tid = null;
                 tagData = null;
             }
-            return cx;
         }
-        return null;
+        if (cx.size() != 0) {
+            Log.d(TAG, "handleMessage: 111111111111111111111");
+            h.sendMessage(h.obtainMessage(1, cx));
+        }
+        long nowTime = System.currentTimeMillis();
+        if (nowTime - currentTimeMillis > 750 ) {
+            Log.d(TAG, "handleMessage: 222222222222222222222");
+//            send = true;
+            h.sendMessage(h.obtainMessage(2));
+            inventory_stop();
+        }
     }
 
     private Tag_Data newGetInventoryData() {
@@ -836,7 +851,7 @@ public class R2K implements IUHFService {
     }
 
 
-    public static final int ANTENNA_P_MIN = 0;
+    public static final int ANTENNA_P_MIN = 10;
     public static final int ANTENNA_P_MAX = 30;
 
     public int set_antenna_power(int power) {

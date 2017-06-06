@@ -9,20 +9,20 @@ import android.os.Handler;
 
 public interface IUHFService {
 
-    public static final int REGION_CHINA_840_845 = 0;
-    public static final int REGION_CHINA_920_925 = 1;
-    public static final int REGION_CHINA_902_928 = 2;
-    public static final int REGION_EURO_865_868 = 3;
-    public static final int RESERVED_A = 0;
-    public static final int EPC_A = 1;
-    public static final int TID_A = 2;
-    public static final int USER_A = 3;
-    public static final int FAST_MODE = 0;
-    public static final int SMART_MODE = 1;
-    public static final int LOW_POWER_MODE = 2;
-    public static final int USER_MODE = 3;
-    public static final String SERIALPORT = "/dev/ttyMT2";
-    public static final String POWERCTL = "/sys/class/misc/mtgpio/pin";
+    public  final int REGION_CHINA_840_845 = 0;
+    public  final int REGION_CHINA_920_925 = 1;
+    public  final int REGION_CHINA_902_928 = 2;
+    public  final int REGION_EURO_865_868 = 3;
+    public  final int RESERVED_A = 0;
+    public  final int EPC_A = 1;
+    public  final int TID_A = 2;
+    public  final int USER_A = 3;
+    public  final int FAST_MODE = 0;
+    public  final int SMART_MODE = 1;
+    public  final int LOW_POWER_MODE = 2;
+    public  final int USER_MODE = 3;
+    public  final String SERIALPORT = "/dev/ttyMT2";
+    public  final String POWERCTL = "/sys/class/misc/mtgpio/pin";
 
     //默认参数初始化模块
     public int OpenDev();

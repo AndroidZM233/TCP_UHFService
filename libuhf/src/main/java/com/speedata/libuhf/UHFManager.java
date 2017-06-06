@@ -33,27 +33,27 @@ import static android.content.ContentValues.TAG;
  */
 
 public class UHFManager {
-    private static IUHFService iuhfService;
+    private IUHFService iuhfService;
     //飞利信读取制造商指令
-    private static byte[] feilixin_cmd = {(byte) 0xbb, 0x00, 0x03, 0x00, 0x01, 0x02, 0x06, 0x7e};
+    private final byte[] feilixin_cmd = {(byte) 0xbb, 0x00, 0x03, 0x00, 0x01, 0x02, 0x06, 0x7e};
     //R2000获取版本号
-    private static byte[] r2000_cmd = {(byte) 0x7e, 0x00, 0x0e, 0x40, 0x06, 0x00, 0x00, 0x00,
+    private final byte[] r2000_cmd = {(byte) 0x7e, 0x00, 0x0e, 0x40, 0x06, 0x00, 0x00, 0x00,
             0x00, 0x00, 0x00, 0x00, 0x54, 0x7e};
     //芯联
-    private static byte[] xinlian_cmd = {(byte) 0xFF, 0x00, 0x03, 0x1d, 0x0C};
-    private final static String FACTORY_FEILIXIN = "feilixin";
-    private final static String FACTORY_XINLIAN = "xinlian";
-    private final static String FACTORY_R2000 = "r2k";
-    private final static String FACTORY_3992 = "as3992";
-    private static int fd;
-    private static android.serialport.DeviceControl pw;
-    private static Context mContext;
-    private static BatteryReceiver batteryReceiver;
-    private static ReadBean mRead;
-    private static String factory;
+    private final byte[] xinlian_cmd = {(byte) 0xFF, 0x00, 0x03, 0x1d, 0x0C};
+    private final String FACTORY_FEILIXIN = "feilixin";
+    private final String FACTORY_XINLIAN = "xinlian";
+    private final String FACTORY_R2000 = "r2k";
+    private final String FACTORY_3992 = "as3992";
+    private int fd;
+    private android.serialport.DeviceControl pw;
+    private Context mContext;
+    private BatteryReceiver batteryReceiver;
+    private ReadBean mRead;
+    private String factory;
 
 
-    public static IUHFService getUHFService(Context context) {
+    public IUHFService getUHFService(Context context) {
         //  判断模块   返回不同的模块接口对象
         mContext = context;
         //注册广播接受者java代码
@@ -69,21 +69,22 @@ public class UHFManager {
         return iuhfService;
     }
 
-    public static void closeUHFService() {
+    public void closeUHFService() {
         iuhfService = null;
         mContext.unregisterReceiver(batteryReceiver);
     }
-    public static void setIuhfServiceNull(){
+
+    public void setIuhfServiceNull() {
         iuhfService = null;
     }
 
     /**
      * 广播接受者
      */
-    static class BatteryReceiver extends BroadcastReceiver {
+    class BatteryReceiver extends BroadcastReceiver {
 
         @Override
-        public void onReceive(Context context, Intent intent) {
+        public void onReceive( Context context, Intent intent) {
             // TODO Auto-generated method stub
             //判断它是否是为电量变化的Broadcast Action
             if (Intent.ACTION_BATTERY_CHANGED.equals(intent.getAction())) {
@@ -91,7 +92,7 @@ public class UHFManager {
                 int level = intent.getIntExtra("level", 0);
                 if (level < 20) {
 //                    iuhfService.CloseDev();
-                    Handler handler=new Handler(Looper.getMainLooper());
+                    Handler handler = new Handler(Looper.getMainLooper());
                     handler.post(new Runnable() {
                         @Override
                         public void run() {
@@ -105,7 +106,7 @@ public class UHFManager {
 
     }
 
-    private static boolean judgeModle() {
+    private boolean judgeModle() {
         if (ConfigUtils.isConfigFileExists() && !CommonUtils.subDeviceType().contains("55")) {
             mRead = ConfigUtils.readConfig(mContext);
             factory = mRead.getUhf().getModule();
@@ -153,7 +154,7 @@ public class UHFManager {
         return state;
     }
 
-    private static void noXmlJudgeModule() {
+    private void noXmlJudgeModule() {
         factory = SharedXmlUtil.getInstance(mContext).read("modle", "");
         if (TextUtils.isEmpty(factory)) {
             Log.d("getModle_start", String.valueOf(System.currentTimeMillis()));
@@ -162,7 +163,7 @@ public class UHFManager {
             } else if (Build.VERSION.RELEASE.equals("5.1")) {
                 String xinghao = Build.MODEL;
                 if (xinghao.equals("KT80") || xinghao.equals("W6") || xinghao.equals("N80")
-                        ||xinghao.equals("Biowolf LE")) {
+                        || xinghao.equals("Biowolf LE")) {
                     powerOn(DeviceControl.PowerType.MAIN, 119);
                 } else if (xinghao.equals("KT55")) {
                     String readEm55 = readEm55();
@@ -191,7 +192,7 @@ public class UHFManager {
         }
     }
 
-    private static void powerOn(android.serialport.DeviceControl.PowerType POWERCTL, int... gpios) {
+    private void powerOn(android.serialport.DeviceControl.PowerType POWERCTL, int... gpios) {
         try {
             pw = new android.serialport.DeviceControl(POWERCTL, gpios);
             pw.PowerOnDevice();
@@ -204,7 +205,7 @@ public class UHFManager {
     /**
      * @return 返回厂家信息
      */
-    private static String getModle() {
+    private String getModle() {
         String factory = "";
         SerialPort serialPort = new SerialPort();
         try {
@@ -218,11 +219,11 @@ public class UHFManager {
         //判断是不是R2000
         serialPort.clearPortBuf(fd);
         serialPort.WriteSerialByte(fd, r2000_cmd);
-//        try {
-//            Thread.sleep(100);
-//        } catch (InterruptedException e) {
-//            e.printStackTrace();
-//        }
+        try {
+            Thread.sleep(100);
+        } catch (InterruptedException e) {
+            e.printStackTrace();
+        }
         try {
             bytes = serialPort.ReadSerial(fd, 84);
         } catch (UnsupportedEncodingException e) {

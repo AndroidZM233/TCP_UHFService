@@ -17,8 +17,7 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.ToggleButton;
 
-import com.speedata.libuhf.IUHFService;
-import com.speedata.libuhf.UHFManager;
+import com.speedata.libuhf.R2K;
 import com.speedata.libuhf.utils.SharedXmlUtil;
 
 import org.greenrobot.eventbus.EventBus;
@@ -52,19 +51,42 @@ public class ShowAct extends AppCompatActivity implements View.OnClickListener {
         initView();
         EventBus.getDefault().register(this);
 
+//        sharedXmlUtil = SharedXmlUtil.getInstance(ShowAct.this);
+//        //初始化超高频
+//        sharedXmlUtil.write("modle", "");
+//        IUHFService uhfService = UHFManager.getUHFService(ShowAct.this);
+//        uhfService.OpenDev();
+//        SystemClock.sleep(200);
+//        int antenna_power = uhfService.get_antenna_power();
+//        tv_uhf_status.append(antenna_power+"");
+//        uhfService.CloseDev();
+//        UHFManager.closeUHFService();
+
+//        SystemClock.sleep(10000);
+
+//        sharedXmlUtil.write("modle", "");
+//        IUHFService uhfService2 = UHFManager.getUHFService(ShowAct.this);
+//        uhfService2.OpenDev();
+//        SystemClock.sleep(200);
+//        int antenna_power1 = uhfService2.get_antenna_power();
+//        tv_uhf_status.append(antenna_power1+"");
+//        uhfService2.CloseDev();
+//        UHFManager.closeUHFService();
+
         sharedXmlUtil = SharedXmlUtil.getInstance(ShowAct.this);
         //初始化超高频
-        sharedXmlUtil.write("modle", "r2k");
-        IUHFService uhfService = UHFManager.getUHFService(ShowAct.this);
+//        sharedXmlUtil.write("modle", "");
+//        IUHFService uhfService = UHFManager.getUHFService(ShowAct.this);
+        R2K r2K=new R2K(this);
         boolean serviceWork = isServiceWork(this, "speedata.com.uhfservice.UHFService");
         int antenna_power = 0;
         if (serviceWork) {
-            antenna_power = uhfService.get_antenna_power();
+            antenna_power = r2K.get_antenna_power();
         } else {
-            uhfService.OpenDev();
+            r2K.OpenDev();
             SystemClock.sleep(200);
-            antenna_power = uhfService.get_antenna_power();
-            uhfService.CloseDev();
+            antenna_power = r2K.get_antenna_power();
+            r2K.CloseDev();
         }
         if (antenna_power >= 10 && antenna_power <= 30) {
             tv_uhf_status.setText("正常");
@@ -73,8 +95,11 @@ public class ShowAct extends AppCompatActivity implements View.OnClickListener {
             tv_uhf_status.setText("异常");
             tv_uhf_status.setTextColor(getResources().getColor(R.color.red));
         }
-        UHFManager.closeUHFService();
+//        UHFManager.closeUHFService();
 
+        if (myReceiver!=null){
+            unregisterReceiver(myReceiver);
+        }
         myReceiver = new MyReceiver();
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction("com.geo.warn.msg");
