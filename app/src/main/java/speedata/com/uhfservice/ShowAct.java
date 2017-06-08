@@ -18,7 +18,6 @@ import android.widget.TextView;
 import android.widget.ToggleButton;
 
 import com.speedata.libuhf.R2K;
-import com.speedata.libuhf.utils.SharedXmlUtil;
 
 import org.greenrobot.eventbus.EventBus;
 import org.greenrobot.eventbus.Subscribe;
@@ -40,7 +39,6 @@ public class ShowAct extends AppCompatActivity implements View.OnClickListener {
     private EditText tv_tcp_receive;
     private EditText tv_tcp_send;
     private TextView tv_config;
-    private SharedXmlUtil sharedXmlUtil;
     private TextView tv_uhf_status;
     private MyReceiver myReceiver;
 
@@ -51,32 +49,7 @@ public class ShowAct extends AppCompatActivity implements View.OnClickListener {
         initView();
         EventBus.getDefault().register(this);
 
-//        sharedXmlUtil = SharedXmlUtil.getInstance(ShowAct.this);
-//        //初始化超高频
-//        sharedXmlUtil.write("modle", "");
-//        IUHFService uhfService = UHFManager.getUHFService(ShowAct.this);
-//        uhfService.OpenDev();
-//        SystemClock.sleep(200);
-//        int antenna_power = uhfService.get_antenna_power();
-//        tv_uhf_status.append(antenna_power+"");
-//        uhfService.CloseDev();
-//        UHFManager.closeUHFService();
-
-//        SystemClock.sleep(10000);
-
-//        sharedXmlUtil.write("modle", "");
-//        IUHFService uhfService2 = UHFManager.getUHFService(ShowAct.this);
-//        uhfService2.OpenDev();
-//        SystemClock.sleep(200);
-//        int antenna_power1 = uhfService2.get_antenna_power();
-//        tv_uhf_status.append(antenna_power1+"");
-//        uhfService2.CloseDev();
-//        UHFManager.closeUHFService();
-
-        sharedXmlUtil = SharedXmlUtil.getInstance(ShowAct.this);
         //初始化超高频
-//        sharedXmlUtil.write("modle", "");
-//        IUHFService uhfService = UHFManager.getUHFService(ShowAct.this);
         R2K r2K=new R2K(this);
         boolean serviceWork = isServiceWork(this, "speedata.com.uhfservice.UHFService");
         int antenna_power = 0;
@@ -95,7 +68,6 @@ public class ShowAct extends AppCompatActivity implements View.OnClickListener {
             tv_uhf_status.setText("异常");
             tv_uhf_status.setTextColor(getResources().getColor(R.color.red));
         }
-//        UHFManager.closeUHFService();
 
         if (myReceiver!=null){
             unregisterReceiver(myReceiver);
@@ -194,7 +166,7 @@ public class ShowAct extends AppCompatActivity implements View.OnClickListener {
         public void run() {
             super.run();
             try {
-                IniReader iniReader = new IniReader("/storage/emulated/0/config.ini");
+                IniReader iniReader = new IniReader("/storage/emulated/0/config.txt");
                 String AntPower = iniReader.getValue("StatusSet", "AntPower");
                 String TagMaxCnt = iniReader.getValue("StatusSet", "TagMaxCnt");
                 String RSSIFilter = iniReader.getValue("StatusSet", "RSSIFilter");

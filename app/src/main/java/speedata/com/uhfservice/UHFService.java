@@ -5,6 +5,8 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.media.AudioManager;
+import android.media.SoundPool;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -53,6 +55,8 @@ public class UHFService extends Service {
     private MyReceiver myReceiver;
     private ServerSocketThread mServerSocketThread;
     private R2K r2K;
+    private SoundPool soundPool;
+    private int successSound;
 
 
     @Override
@@ -64,26 +68,9 @@ public class UHFService extends Service {
     public int onStartCommand(Intent intent, int flags, int startId) {
         Log.d(TAG, "onStartCommand: ------------------------------");
 
-
-//        File file=new File("/storage/emulated/0/config.ini");
-//        if (!file.exists()){
-//            IniFile file2 = new IniFile();
-//            file2.set("Config", "AntPower", 30);
-//            file2.set("Config", "TagMaxCnt", 3);
-//            file2.set("Config", "RSSIFilter", -70);
-//            file2.set("Config", "ReadCntFilter", 1);
-//            file2.save(file);
-//        }else {
-//            IniFile iniFile = new IniFile(file);
-//            Object AntPower = iniFile.get("Config", "AntPower");
-//            Object TagMaxCnt = iniFile.get("Config", "TagMaxCnt");
-//        }
-
         sharedXmlUtil = SharedXmlUtil.getInstance(UHFService.this);
-//        //初始化超高频
-//        sharedXmlUtil.write("modle", "");
+        //初始化超高频
         r2K = new R2K(UHFService.this);
-//        uhfService = UHFManager.getUHFService(UHFService.this);
         r2K.OpenDev();
         ReadINIThread readINIThread = new ReadINIThread();
         readINIThread.start();
@@ -104,6 +91,11 @@ public class UHFService extends Service {
         intentFilter.addAction("com.geo.warn.msg");
         registerReceiver(myReceiver, intentFilter);
 
+        if (soundPool!=null){
+            soundPool.release();
+        }
+        soundPool = new SoundPool(2, AudioManager.STREAM_MUSIC, 0);
+        successSound = soundPool.load("/system/media/audio/ui/VideoRecord.ogg", 0);
 
         Log.d(TAG, "onStartCommand: -----------------end");
         //        uhfService.setListener(new IUHFService.Listener() {
@@ -149,67 +141,16 @@ public class UHFService extends Service {
 
     }
 
-
-    //    @Override
-    //    public void onCreate() {
-    //        super.onCreate();
-    //        sharedXmlUtil = SharedXmlUtil.getInstance(UHFService.this, "UHFService");
-    //        //初始化超高频
-    //        uhfService = UHFManager.getUHFService(UHFService.this);
-    //
-    ////        uhfService.OpenDev();
-    //        //启动服务器监听线程
-    //        ServerSocketThread mServerSocketThread = new ServerSocketThread();
-    //        mServerSocketThread.start();
-    //
-    //        myReceiver = new MyReceiver();
-    //        IntentFilter intentFilter = new IntentFilter();
-    //        intentFilter.addAction("com.geo.warn.msg");
-    //        registerReceiver(myReceiver, intentFilter);
-    //
-    //        uhfService.setListener(new IUHFService.Listener() {
-    //            @Override
-    //            public void update(Tag_Data var1) {
-    //                long nowTime = System.currentTimeMillis();
-    //                byte[] nq = var1.epc;
-    //                String epcStr = "";
-    //                if (nq != null) {
-    //                    epcStr = b2hexs(nq, nq.length);
-    //                }
-    //                int j;
-    //                if (firm.size() == 0) {
-    //                    int rssi = Integer.parseInt(var1.rssi);
-    //                    firm.add(new ReadData(epcStr, rssi, 1));
-    //                }
-    //                for (j = 0; j < firm.size(); j++) {
-    //                    if (epcStr.equals(firm.get(j).getEPC())) {
-    //                        int count = firm.get(j).getCount();
-    //                        int countResult = count + 1;
-    //                        firm.get(j).setCount(countResult);
-    //                        int rssi = firm.get(j).getRSSI();
-    //                        int rssi1 = Integer.parseInt(var1.rssi);
-    //                        firm.get(j).setRSSI((rssi + rssi1) / 2);
-    //                        break;
-    //                    }
-    //                    if (j == firm.size() - 1) {
-    //                        int rssi = Integer.parseInt(var1.rssi);
-    //                        firm.add(new ReadData(epcStr, rssi, 1));
-    //                    }
-    //                }
-    //
-    //                if (nowTime - currentTimeMillis > 750) {
-    //                    sendN();
-    //                }
-    //            }
-    //        });
-    //    }
-
     private class ReadINIThread extends Thread {
         @Override
         public void run() {
             super.run();
             try {
-                IniReader iniReader = new IniReader("/storage/emulated/0/config.ini");
+                boolean isExists = IniReader.fileIsExists("/storage/emulated/0/config.txt");
+                if (!isExists) {
+                    IniReader.CopyAssets(UHFService.this, "config.txt", "/storage/emulated/0/config.txt");
+                }
+                IniReader iniReader = new IniReader("/storage/emulated/0/config.txt");
                 String AntPower = iniReader.getValue("StatusSet", "AntPower");
                 String TagMaxCnt = iniReader.getValue("StatusSet", "TagMaxCnt");
                 String RSSIFilter = iniReader.getValue("StatusSet", "RSSIFilter");
@@ -298,7 +239,6 @@ public class UHFService extends Service {
         Log.d(TAG, "onDestroy: --------------------------");
         unregisterReceiver(myReceiver);
         r2K.CloseDev();
-//        r2K.closeUHFService();
         r2K = null;
         try {
             mServerSocketThread.interrupt();
@@ -322,7 +262,7 @@ public class UHFService extends Service {
         }
         firm.clear();
         firm = null;
-
+        soundPool.release();
         Log.d(TAG, "onDestroy: ---------------------end");
     }
 
@@ -362,9 +302,7 @@ public class UHFService extends Service {
 
                 } catch (IOException e) {
                     e.printStackTrace();
-//                    result = "0:IOException" + "\r" + "\n";
                     Log.d(TAG, "ServerSocketThread: IOException");
-//                    sendMsg(result);
                 }
             }
         }
@@ -395,7 +333,8 @@ public class UHFService extends Service {
                         continue;
                     }
                     String receiveStr = new String(buf, 0, len);
-                    receiveStr.replace("\r", "").replace("\n", "").replace("<CR><LF>", "");
+                    receiveStr = receiveStr.replace("\r", "").replace("\\\n", "").replace("\n", "")
+                            .replace("<CR><LF>", "");
                     EventBus.getDefault().post(new MsgEvent("tcp_receiver", receiveStr));
                     Log.d(TAG, "接收线程: " + receiveStr);
                     String[] split = receiveStr.split(":");
@@ -418,10 +357,11 @@ public class UHFService extends Service {
                                         int i = r2K.set_antenna_power(power);
                                         if (i != 0) {
                                             result = "0:failed" + "\r" + "\n";
-                                            sendMsg(result);
-                                            continue;
+                                        } else {
+                                            result = "1:AntPower=" + power + "\r" + "\n";
                                         }
-
+                                        sendMsg(result);
+                                        continue;
                                     } else {
                                         result = "0:Power Range of 10-30" + "\r" + "\n";
                                         sendMsg(result);
@@ -675,6 +615,8 @@ public class UHFService extends Service {
         }
 
         isend = true;
+
+        soundPool.play(successSound,1, 1, 0, 1, 1);
         Log.d(TAG, "sendN: ————————————————————————————————————————————————");
 //        uhfService.CloseDev();
     }
@@ -709,10 +651,10 @@ public class UHFService extends Service {
         String rssiFilter = sharedXmlUtil.read("rssiFilter", "");
         String readCntFilter = sharedXmlUtil.read("readCntFilter", "");
         if (AntPower.equals("-1")) {
-            result = "0,AntPower=" + AntPower + ",TagMaxCnt=" + tagMaxCnt + ",RSSIFilter=" + rssiFilter
+            result = "0:AntPower=" + AntPower + ",TagMaxCnt=" + tagMaxCnt + ",RSSIFilter=" + rssiFilter
                     + ",ReadCntFilter=" + readCntFilter + "\r" + "\n";
         } else {
-            result = "1,AntPower=" + AntPower + ",Ta" +
+            result = "1:AntPower=" + AntPower + ",Ta" +
                     "gMaxCnt=" + tagMaxCnt + ",RSSIFilter=" + rssiFilter
                     + ",ReadCntFilter=" + readCntFilter + "\r" + "\n";
         }
@@ -837,9 +779,9 @@ public class UHFService extends Service {
     public void getG() {
         String status1 = sharedXmlUtil.read("status1", "");
         if (!TextUtils.isEmpty(status1)) {
-            result = "1," + GPI + ",2," + status1 + ",0\r\n";
+            result = "1:" + GPI + ",2," + status1 + ",0\r\n";
         } else {
-            result = "0," + GPI + ",2," + status1 + ",0\r\n";
+            result = "0:" + GPI + ",2," + status1 + ",0\r\n";
         }
         sendMsg(result);
 
