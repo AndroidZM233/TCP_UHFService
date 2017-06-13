@@ -4,7 +4,6 @@ package com.speedata.libuhf;
 1.3	fix set antenna power and cancel wait on inventory
 */
 
-import android.content.Context;
 import android.os.Handler;
 import android.os.SystemClock;
 import android.serialport.DeviceControl;
@@ -46,14 +45,14 @@ public class R2K implements IUHFService {
     private inv_thread invs = null;
     private get_invdata gd;
     private DeviceControl pw;
-    private Context mContext;
+//    private Context mContext;
     private ReadBean mRead;
     private android.serialport.DeviceControl newDeviceControl;
     private R2K.testGetInvdata testGetInvdata;
 
-    public R2K(Context mContext) {
-        this.mContext = mContext;
-    }
+//    public R2K(Context mContext) {
+//        this.mContext = mContext;
+//    }
 
     private class inv_thread extends Thread {
         public void run() {

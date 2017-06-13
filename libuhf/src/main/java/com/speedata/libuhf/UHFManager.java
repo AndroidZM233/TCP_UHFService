@@ -125,7 +125,7 @@ public class UHFManager {
                 iuhfService = new XinLianQilian(mContext);
                 break;
             case FACTORY_R2000:
-                iuhfService = new R2K(mContext);
+                iuhfService = new R2K();
                 break;
             case FACTORY_3992:
                 iuhfService = new com.android.uhflibs.as3992_native(mContext);

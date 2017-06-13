@@ -50,7 +50,7 @@ public class ShowAct extends AppCompatActivity implements View.OnClickListener {
         EventBus.getDefault().register(this);
 
         //初始化超高频
-        R2K r2K=new R2K(this);
+        R2K r2K=new R2K();
         boolean serviceWork = isServiceWork(this, "speedata.com.uhfservice.UHFService");
         int antenna_power = 0;
         if (serviceWork) {
